@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
@@ -10,6 +10,7 @@ interface Message {
   role: 'user' | 'ai';
   content: string;
   timestamp: Date;
+  fileName?: string; // optional for uploaded files
 }
 
 export default function Chat() {
@@ -22,6 +23,7 @@ export default function Chat() {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -53,6 +55,29 @@ export default function Chat() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  // File upload handlers
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `Uploaded file: ${file.name}`,
+      timestamp: new Date(),
+      fileName: file.name
+    };
+
+    setMessages(prev => [...prev, fileMessage]);
+
+    // TODO: handle file upload to backend if needed
+    e.target.value = ''; // reset file input
   };
 
   return (
@@ -104,7 +129,11 @@ export default function Chat() {
                     ? 'bg-teal-900/30 border-teal-600/30'
                     : 'bg-gray-800/50 border-purple-900/30'
                 } backdrop-blur-sm`}>
-                  <p className="text-white">{message.content}</p>
+                  <p className="text-white">
+                    {message.fileName ? (
+                      <a href="#" className="text-blue-400 underline">{message.fileName}</a>
+                    ) : message.content}
+                  </p>
                   <p className="text-xs text-purple-300 mt-2">
                     {message.timestamp.toLocaleTimeString([], { 
                       hour: '2-digit', 
@@ -125,10 +154,19 @@ export default function Chat() {
             variant="ghost"
             size="icon"
             className="text-purple-400 hover:text-white hover:bg-purple-900/30"
+            onClick={handleFileClick}
           >
             <Paperclip size={20} />
           </Button>
-          
+
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
           <div className="flex-1 relative">
             <Input
               value={inputMessage}
@@ -147,7 +185,7 @@ export default function Chat() {
             <Send size={18} />
           </Button>
         </div>
-        
+
         <div className="flex items-center justify-center mt-2">
           <p className="text-xs text-purple-400">
             ClauseBuddy can make mistakes. Please verify important information.

@@ -3,5 +3,10 @@
   import App from "./App.tsx";
   import "./index.css";
 
-  createRoot(document.getElementById("root")!).render(<App />);
+  import { GoogleOAuthProvider } from "@react-oauth/google";
+  createRoot(document.getElementById("root")!).render(
+    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+    <App />
+  </GoogleOAuthProvider>
+  );
   
