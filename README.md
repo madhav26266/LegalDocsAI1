@@ -27,18 +27,3 @@ Upload contracts, agreements, or legal docs and get summaries, risk alerts, and 
 
 ---
 
-## 📂 Project Structure
-
-=======
-
-  # Design ClauseBuddy Interface
-
-  This is a code bundle for Design ClauseBuddy Interface. The original project is available at https://www.figma.com/design/TEBwHTxOExE2ijxeEXjQv6/Design-ClauseBuddy-Interface.
-
-  ## Running the code
-
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-  
->>>>>>> 29daa51 (Initial commit: frontend setup done for LegalDocsAI)
