@@ -1,18 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StarField from "./components/StarField";
 import Sidebar from "./components/Sidebar";
 import Chat from "./components/Chat";
 import History from "./components/History";
 import Uploads from "./components/Uploads";
 import RightPanel from "./components/RightPanel";
+import Login from "./pages/Login";
 
 export default function App() {
   const [activeSection, setActiveSection] = useState("chat");
-  const [isRightPanelExpanded, setIsRightPanelExpanded] =
-    useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] =
-    useState(false);
+  const [isRightPanelExpanded, setIsRightPanelExpanded] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // login state
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // load saved user from localStorage
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLoginSuccess = (userData: any) => {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+  };
+
+  // if not logged in → show login page
+  if (!user) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // normal app UI after login
   const renderMainContent = () => {
     switch (activeSection) {
       case "chat":
@@ -37,6 +58,7 @@ export default function App() {
         onSectionChange={setActiveSection}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
+        onLoginClick={() => setUser(null)}
       />
 
       {/* Main Content Area */}
@@ -60,9 +82,7 @@ export default function App() {
                 <Chat />
               </div>
             ) : (
-              <div className="max-w-7xl mx-auto">
-                {renderMainContent()}
-              </div>
+              <div className="max-w-7xl mx-auto">{renderMainContent()}</div>
             )}
           </div>
         </div>
@@ -72,9 +92,7 @@ export default function App() {
       {activeSection === "chat" && (
         <RightPanel
           isExpanded={isRightPanelExpanded}
-          onToggle={() =>
-            setIsRightPanelExpanded(!isRightPanelExpanded)
-          }
+          onToggle={() => setIsRightPanelExpanded(!isRightPanelExpanded)}
         />
       )}
     </div>
