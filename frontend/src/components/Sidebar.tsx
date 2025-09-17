@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { 
+import {
   MessageCircle,
   History, 
   Upload, 
@@ -10,6 +10,7 @@ import {
   LogIn,
   UserPlus
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activeSection: string;
@@ -21,6 +22,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeSection, onSectionChange, isCollapsed, onCollapseChange, onLoginClick}: SidebarProps) {
+  const { user } = useAuth();
 
   const navigationItems = [
     { id: 'chat', label: 'Chat', icon: MessageCircle },
@@ -92,7 +94,7 @@ export default function Sidebar({ activeSection, onSectionChange, isCollapsed, o
                       <Button
                         variant={isActive ? "default" : "ghost"}
                         className={`
-                          w-full justify-start transition-all duration-200
+                          w-full flex items-center justify-center transition-all duration-200
                           ${isActive 
                             ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
                             : 'text-purple-200 hover:text-white hover:bg-purple-900/30'
@@ -133,56 +135,70 @@ export default function Sidebar({ activeSection, onSectionChange, isCollapsed, o
           </nav>
 
           {/* Footer */}
-          {/* Footer */}
-<div className="p-4 border-t border-purple-900/30">
-  {isCollapsed ? (
-    <div className="space-y-2">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="w-full border-purple-600/50 text-purple-300 hover:text-white hover:bg-purple-900/30"
-            onClick={onLoginClick} // <- added
-          >
-            <LogIn size={18} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>Login</p>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>Sign Up</p>
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  ) : (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Button
-          variant="outline"
-          className="w-full justify-start border-purple-600/50 text-purple-300 hover:text-white hover:bg-purple-900/30"
-          onClick={onLoginClick} // <- added
-        >
-          <LogIn size={16} className="mr-2" />
-          Login
-        </Button>
-
-        
-      </div>
-      <div className="text-xs text-purple-300 text-center">
-        <p>© 2025 ClauseBuddy</p>
-        <p>Legal AI Assistant</p>
-      </div>
-    </div>
-  )}
-</div>
+          <div className="p-4 border-t border-purple-900/30">
+            {user ? (
+              isCollapsed ? (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={user.avatar || ''}
+                    alt={user.name}
+                    className="h-8 w-8 rounded-full border border-purple-700 object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={user.avatar || ''}
+                    alt={user.name}
+                    className="h-9 w-9 rounded-full border border-purple-700 object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://www.gravatar.com/avatar/?d=mp'; }}
+                  />
+                  <div>
+                    <p className="text-white font-medium truncate max-w-[10rem]">{user.name}</p>
+                    <p className="text-xs text-purple-300 truncate max-w-[10rem]">{user.email}</p>
+                  </div>
+                </div>
+              )
+            ) : (
+              isCollapsed ? (
+                <div className="space-y-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="w-full border-purple-600/50 text-purple-300 hover:text-white hover:bg-purple-900/30"
+                        onClick={onLoginClick}
+                      >
+                        <LogIn size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Login</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start border-purple-600/50 text-purple-300 hover:text-white hover:bg-purple-900/30"
+                      onClick={onLoginClick}
+                    >
+                      <LogIn size={16} className="mr-2" />
+                      Login
+                    </Button>
+                  </div>
+                  <div className="text-xs text-purple-300 text-center">
+                    <p>© 2025 ClauseBuddy</p>
+                    <p>Legal AI Assistant</p>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
 
         </div>
       </div>

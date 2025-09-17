@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -12,58 +12,75 @@ import {
   CheckCircle2,
   Clock
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  status: 'uploading' | 'processing' | 'completed' | 'error';
-  progress: number;
+  _id: string;
+  fileName: string;
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  filePath: string;
   uploadedAt: Date;
-  analyzedAt?: Date;
-  risksFound?: number;
 }
 
 export default function Uploads() {
-  const [files, setFiles] = useState<UploadedFile[]>([
-    {
-      id: '1',
-      name: 'rental_agreement.pdf',
-      size: 245760,
-      type: 'application/pdf',
-      status: 'completed',
-      progress: 100,
-      uploadedAt: new Date(2025, 7, 28, 14, 30),
-      analyzedAt: new Date(2025, 7, 28, 14, 32),
-      risksFound: 3
-    },
-    {
-      id: '2',
-      name: 'employment_contract.docx',
-      size: 189440,
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      status: 'completed',
-      progress: 100,
-      uploadedAt: new Date(2025, 7, 25, 10, 15),
-      analyzedAt: new Date(2025, 7, 25, 10, 18),
-      risksFound: 1
-    },
-    {
-      id: '3',
-      name: 'service_agreement.pdf',
-      size: 312320,
-      type: 'application/pdf',
-      status: 'processing',
-      progress: 75,
-      uploadedAt: new Date(2025, 7, 22, 9, 20)
+  const { token } = useAuth();
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [token]);
+
+  // Refresh files when component becomes visible (when user navigates to uploads)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && token) {
+        fetchFiles();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [token]);
+
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/chat/files', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFiles(data);
+      }
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/chat/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-
-  const handleDeleteFile = (fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
+      if (response.ok) {
+        setFiles(prev => prev.filter(f => f._id !== fileId));
+        // refresh stats automatically
+        fetchFiles();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -74,33 +91,27 @@ export default function Uploads() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'uploading':
-      case 'processing':
-        return <Clock className="h-4 w-4 text-yellow-400" />;
-      case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-400" />;
-      default:
-        return null;
-    }
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) return <FileText className="h-8 w-8 text-red-400" />;
+    if (fileType.includes('image')) return <FileText className="h-8 w-8 text-blue-400" />;
+    if (fileType.includes('document')) return <FileText className="h-8 w-8 text-green-400" />;
+    return <FileText className="h-8 w-8 text-purple-400" />;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'uploading':
-      case 'processing':
-        return 'bg-yellow-900/30 text-yellow-400 border-yellow-600/30';
-      case 'completed':
-        return 'bg-green-900/30 text-green-400 border-green-600/30';
-      case 'error':
-        return 'bg-red-900/30 text-red-400 border-red-600/30';
-      default:
-        return 'bg-gray-900/30 text-gray-400 border-gray-600/30';
-    }
+  const getFileTypeLabel = (fileType: string) => {
+    if (fileType.includes('pdf')) return 'PDF';
+    if (fileType.includes('image')) return 'Image';
+    if (fileType.includes('document')) return 'Document';
+    return 'File';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white text-xl">Loading files...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -125,105 +136,98 @@ export default function Uploads() {
         <Card className="bg-gray-900/50 border-purple-900/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-green-400">
-              {files.filter(f => f.status === 'completed').length}
+              {files.filter(f => f.fileType.includes('pdf')).length}
             </p>
-            <p className="text-sm text-purple-200">Processed</p>
+            <p className="text-sm text-purple-200">PDF Files</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-900/50 border-purple-900/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-400">
-              {files.filter(f => f.status === 'processing' || f.status === 'uploading').length}
+            <p className="text-2xl font-bold text-blue-400">
+              {files.filter(f => f.fileType.includes('image')).length}
             </p>
-            <p className="text-sm text-purple-200">Processing</p>
+            <p className="text-sm text-purple-200">Images</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-900/50 border-purple-900/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-red-400">
-              {files.reduce((total, file) => total + (file.risksFound || 0), 0)}
+            <p className="text-2xl font-bold text-teal-400">
+              {files.reduce((total, file) => total + file.fileSize, 0) > 0 ? 
+                formatFileSize(files.reduce((total, file) => total + file.fileSize, 0)) : '0 B'}
             </p>
-            <p className="text-sm text-purple-200">Risks Found</p>
+            <p className="text-sm text-purple-200">Total Size</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Files List */}
-      <Card className="bg-gray-900/50 border-purple-900/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-white">Uploaded Documents</CardTitle>
-          <CardDescription className="text-purple-200">
-            View analysis results and manage your document history
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {files.length === 0 ? (
-            <div className="text-center py-8">
+      {/* Files Grid (gallery-like) */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-3">Your Documents</h2>
+        {files.length === 0 ? (
+          <Card className="bg-gray-900/50 border-purple-900/30 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
               <FileText className="h-12 w-12 text-purple-400 mx-auto mb-4" />
               <p className="text-white font-medium">No documents in history</p>
               <p className="text-purple-200 text-sm">Your analyzed documents will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {files.map((file) => (
-                <div key={file.id} className="flex items-center space-x-4 p-4 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
-                  <FileText className="h-8 w-8 text-purple-400 flex-shrink-0" />
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-1">
-                      <p className="text-white font-medium truncate">{file.name}</p>
-                      <Badge className={getStatusColor(file.status)}>
-                        {getStatusIcon(file.status)}
-                        <span className="ml-1">{file.status}</span>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {files.map((file) => (
+              <Card key={file._id} className="bg-gray-900/60 border-purple-900/30 hover:bg-gray-900/80 transition-colors overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="aspect-[4/3] bg-gray-800/50 flex items-center justify-center">
+                    {getFileIcon(file.fileType)}
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-white text-sm font-medium truncate mr-2" title={file.originalName}>{file.originalName}</p>
+                      <Badge className="bg-blue-900/30 text-blue-400 border-blue-600/30">
+                        {getFileTypeLabel(file.fileType)}
                       </Badge>
                     </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm text-purple-200">
-                      <span>{formatFileSize(file.size)}</span>
-                      <span>Uploaded {file.uploadedAt.toLocaleDateString()}</span>
-                      {file.risksFound !== undefined && (
-                        <span className={file.risksFound > 0 ? 'text-red-400' : 'text-green-400'}>
-                          {file.risksFound} risk{file.risksFound !== 1 ? 's' : ''} found
-                        </span>
-                      )}
+                    <div className="flex items-center justify-between text-xs text-purple-300">
+                      <span>{formatFileSize(file.fileSize)}</span>
+                      <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
                     </div>
-                    
-                    {(file.status === 'uploading' || file.status === 'processing') && (
-                      <div className="mt-2">
-                        <Progress value={file.progress} className="h-2" />
-                        <p className="text-xs text-purple-300 mt-1">
-                          {file.status === 'uploading' ? 'Uploading...' : 'Processing...'} {file.progress}%
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-end gap-1 pt-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-purple-400 hover:text-white hover:bg-purple-900/30"
+                        onClick={() => window.open(`http://localhost:5000/uploads/${file.fileName}`, '_blank')}
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-teal-400 hover:text-white hover:bg-teal-900/30"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = `http://localhost:5000/uploads/${file.fileName}`;
+                          link.download = file.originalName;
+                          link.click();
+                        }}
+                      >
+                        <Download size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteFile(file._id)}
+                        className="text-red-400 hover:text-white hover:bg-red-900/30"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    {file.status === 'completed' && (
-                      <>
-                        <Button variant="ghost" size="icon" className="text-purple-400 hover:text-white hover:bg-purple-900/30">
-                          <Eye size={16} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-teal-400 hover:text-white hover:bg-teal-900/30">
-                          <Download size={16} />
-                        </Button>
-                      </>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDeleteFile(file.id)}
-                      className="text-red-400 hover:text-white hover:bg-red-900/30"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
