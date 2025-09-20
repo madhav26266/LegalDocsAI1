@@ -11,6 +11,8 @@ import "./config/passport";
 import userRoutes from "./routes/userRoutes";
 import authRoutes from "./routes/authRoutes";
 import chatRoutes from "./routes/chatRoutes";
+import pdfRoutes from "./routes/pdfRoutes"; 
+
 connectDB();
 
 const app = express();
@@ -34,6 +36,8 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/pdf", pdfRoutes);
+
 
 // Start Server
 const PORT = process.env.PORT || 5000;

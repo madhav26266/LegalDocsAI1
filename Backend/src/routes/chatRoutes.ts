@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
@@ -53,7 +53,6 @@ router.get('/history', authenticateToken, async (req: any, res) => {
   }
 });
 
-// IMPORTANT: file-related routes BEFORE dynamic :chatId to avoid ObjectId cast errors on "/files"
 // Get user's uploaded files
 router.get('/files', authenticateToken, async (req: any, res) => {
   try {
@@ -72,18 +71,9 @@ router.get('/files', authenticateToken, async (req: any, res) => {
 router.delete('/files/:fileId', authenticateToken, async (req: any, res) => {
   try {
     const file = await File.findOne({ _id: req.params.fileId, userId: req.user._id });
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+    if (!file) return res.status(404).json({ message: 'File not found' });
 
-    // Remove file from disk if exists
-    try {
-      if (fs.existsSync(file.filePath)) {
-        fs.unlinkSync(file.filePath);
-      }
-    } catch (e) {
-      // ignore disk errors but continue deletion from DB
-    }
+    if (fs.existsSync(file.filePath)) fs.unlinkSync(file.filePath);
 
     await file.deleteOne();
     res.json({ message: 'File deleted' });
@@ -93,23 +83,16 @@ router.delete('/files/:fileId', authenticateToken, async (req: any, res) => {
   }
 });
 
-// Get specific chat (after static routes); validate ObjectId to avoid cast errors
+// Get specific chat
 router.get('/:chatId', authenticateToken, async (req: any, res) => {
   try {
     const chatId = req.params.chatId;
-    // simple 24-hex check to avoid cast errors
     if (!/^[a-fA-F0-9]{24}$/.test(chatId)) {
       return res.status(400).json({ message: 'Invalid chat id' });
     }
 
-    const chat = await Chat.findOne({ 
-      _id: chatId, 
-      userId: req.user._id 
-    });
-
-    if (!chat) {
-      return res.status(404).json({ message: 'Chat not found' });
-    }
+    const chat = await Chat.findOne({ _id: chatId, userId: req.user._id });
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     res.json(chat);
   } catch (error) {
@@ -135,24 +118,27 @@ router.post('/', authenticateToken, async (req: any, res) => {
       });
     }
 
-    // Add user message
-    chat.messages.push({
-      role: 'user',
-      content: message,
-      timestamp: new Date(),
-      files: files || []
-    });
+    // Add user message ONLY if it has text or files
+    if ((message && message.trim()) || (files && files.length > 0)) {
+      chat.messages.push({
+        role: 'user',
+        content: message ? message.trim() : "[File only message]",
+        timestamp: new Date(),
+        files: files || []
+      });
 
-    // Add AI response (simulated)
-    chat.messages.push({
-      role: 'ai',
-      content: "I've received your message and files. I'm analyzing them now and will provide you with insights shortly.",
-      timestamp: new Date()
-    });
+      // Add AI response (simulated)
+      chat.messages.push({
+        role: 'ai',
+        content: "I've received your message and files. I'm analyzing them now and will provide you with insights shortly.",
+        timestamp: new Date()
+      });
 
-    await chat.save();
-
-    res.json(chat);
+      await chat.save();
+      return res.json(chat);
+    } else {
+      return res.status(400).json({ message: 'Message content cannot be empty unless files are uploaded' });
+    }
   } catch (error) {
     console.error('Error creating chat:', error);
     res.status(500).json({ message: 'Error creating chat' });
@@ -162,9 +148,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
 // Upload file
 router.post('/upload', authenticateToken, upload.single('file'), async (req: any, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const file = new File({
       userId: req.user._id,
