@@ -3,6 +3,12 @@
 This microservice handles PDF text extraction and legal document analysis using AI.
 
 ## Setup
+0. **create virtual enivorment: cd Microservie**
+
+```powershell
+  python -m venv .venv 
+   ```
+ 
 
 1. **Activate virtual environment:**
    ```powershell
