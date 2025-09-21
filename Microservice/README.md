@@ -21,11 +21,7 @@ This microservice handles PDF text extraction and legal document analysis using 
    ```powershell
   pip install fastapi uvicorn python-multipart PyPDF2 torch transformers huggingface-hub numpy faiss-cpu pydantic
    ```
-
-   
-
-
-3. **Run the microservice:**
+5. **Run the microservice:**
    ```powershell
    python microservice.py
    ```
@@ -38,5 +34,6 @@ This microservice handles PDF text extraction and legal document analysis using 
 
 ## Port
 Runs on port 8000
+
 
 
