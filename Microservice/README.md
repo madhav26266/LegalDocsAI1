@@ -6,7 +6,7 @@ This microservice handles PDF text extraction and legal document analysis using 
 0. **create virtual enivorment: cd Microservie**
 
 ```powershell
-  python -m venv .venv 
+  python -m venv venv 
    ```
  
 
@@ -33,3 +33,4 @@ This microservice handles PDF text extraction and legal document analysis using 
 
 ## Port
 Runs on port 8000
+
