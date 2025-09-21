@@ -3,7 +3,11 @@
 This microservice handles PDF text extraction and legal document analysis using AI.
 
 ## Setup
-
+0. 1. **create virtual  environment:**
+   ```powershell
+   python -m venv venv
+   ```
+   
 1. **Activate virtual environment:**
    ```powershell
    .\venv\Scripts\Activate.ps1
@@ -34,3 +38,4 @@ This microservice handles PDF text extraction and legal document analysis using 
 
 ## Port
 Runs on port 8000
+
