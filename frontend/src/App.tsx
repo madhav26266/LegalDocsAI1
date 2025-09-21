@@ -8,6 +8,7 @@ import RightPanel from "./components/RightPanel";
 import Login from "./components/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
+
 function AppContent() {
   const { user, loading, login } = useAuth();
   const [activeSection, setActiveSection] = useState("chat");

@@ -41,6 +41,9 @@ interface Toast {
   type: 'error' | 'success' | 'info';
   duration?: number;
 }
+interface ChatProps {
+  initialSummary?: string | null; // optional
+}
 
 export default function Chat() {
   const { token } = useAuth();
